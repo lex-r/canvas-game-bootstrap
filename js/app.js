@@ -12,12 +12,17 @@ var requestAnimFrame = (function(){
         };
 })();
 
+var game = new Game();
+game.init();
+
 resources.load([
     'img/sprites.png',
     'img/terrain.png'
 ]);
 
-resources.onReady(Game.ready);
+resources.onReady(function() {
+    game.ready();
+});
 
 // Game state
 var player = {
@@ -50,7 +55,7 @@ function handleInput(dt) {
     }
 
     if(input.isDown('SPACE') &&
-       !Game.isGameOver &&
+       !game.isGameOver &&
        Date.now() - lastFire > 100) {
         var x = player.pos[0] + player.sprite.size[0] / 2;
         var y = player.pos[1] + player.sprite.size[1] / 2;
@@ -74,8 +79,8 @@ function updateEntities(dt) {
         bullet.move(dt);
 
         // Remove the bullet if it goes offscreen
-        if(bullet.pos[1] < 0 || bullet.pos[1] > Game.canvas.height ||
-           bullet.pos[0] > Game.canvas.width) {
+        if(bullet.pos[1] < 0 || bullet.pos[1] > game.canvas.height ||
+           bullet.pos[0] > game.canvas.width) {
             bullets.splice(i, 1);
             i--;
         }
@@ -137,7 +142,7 @@ function checkCollisions() {
                 i--;
 
                 // Add score
-                Game.setScore(Game.score + 100);
+                game.setScore(100 + game.score);
 
                 // Add an explosion
                 explosions.push(new Explosion(pos));
@@ -159,15 +164,15 @@ function checkPlayerBounds() {
     if(player.pos[0] < 0) {
         player.pos[0] = 0;
     }
-    else if(player.pos[0] > Game.canvas.width - player.sprite.size[0]) {
-        player.pos[0] = Game.canvas.width - player.sprite.size[0];
+    else if(player.pos[0] > game.canvas.width - player.sprite.size[0]) {
+        player.pos[0] = game.canvas.width - player.sprite.size[0];
     }
 
     if(player.pos[1] < 0) {
         player.pos[1] = 0;
     }
-    else if(player.pos[1] > Game.canvas.height - player.sprite.size[1]) {
-        player.pos[1] = Game.canvas.height - player.sprite.size[1];
+    else if(player.pos[1] > game.canvas.height - player.sprite.size[1]) {
+        player.pos[1] = game.canvas.height - player.sprite.size[1];
     }
 }
 
@@ -178,15 +183,15 @@ function renderEntities(list) {
 }
 
 function renderEntity(entity) {
-    Game.ctx.save();
-    Game.ctx.translate(entity.pos[0], entity.pos[1]);
-    entity.sprite.render(Game.ctx);
-    Game.ctx.restore();
+    game.ctx.save();
+    game.ctx.translate(entity.pos[0], entity.pos[1]);
+    entity.sprite.render(game.ctx);
+    game.ctx.restore();
 }
 
 // Game over
 function gameOver() {
     document.getElementById('game-over').style.display = 'block';
     document.getElementById('game-over-overlay').style.display = 'block';
-    Game.isGameOver = true;
+    game.isGameOver = true;
 }
