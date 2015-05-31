@@ -7,6 +7,10 @@ function Game() {
     this.isGameOver = false;
     this.score = 0;
     this.lastFire = Date.now();
+    this.bullets = [];
+    this.enemies = [];
+    this.explosions = [];
+    this.player = undefined;
 }
 
 Game.prototype.init = function () {
@@ -16,6 +20,12 @@ Game.prototype.init = function () {
     this.canvas.width  = 512;
     this.canvas.height = 480;
     document.body.appendChild(this.canvas);
+
+    this.player = {
+        pos: [0, 0],
+        speed: 200,
+        sprite: new Sprite('img/sprites.png', [0, 0], [39, 39], 16, [0, 1])
+    };
 };
 
 // The main game loop
@@ -62,7 +72,7 @@ Game.prototype.update = function(dt) {
     // It gets harder over time by adding enemies using this
     // equation: 1-.993^gameTime
     if(Math.random() < 1 - Math.pow(.993, this.gameTime)) {
-        enemies.push(new Enemy([this.canvas.width, Math.random() * (this.canvas.height - 39)]));
+        this.enemies.push(new Enemy([this.canvas.width, Math.random() * (this.canvas.height - 39)]));
     }
 
     this.checkCollisions();
@@ -75,12 +85,12 @@ Game.prototype.render = function() {
 
     // Render the player if the game isn't over
     if(!this.isGameOver) {
-        this.renderEntity(player);
+        this.renderEntity(this.player);
     }
 
-    this.renderEntities(bullets);
-    this.renderEntities(enemies);
-    this.renderEntities(explosions);
+    this.renderEntities(this.bullets);
+    this.renderEntities(this.enemies);
+    this.renderEntities(this.explosions);
 };
 
 Game.prototype.renderEntities = function(list) {
@@ -98,30 +108,30 @@ Game.prototype.renderEntity = function(entity) {
 
 Game.prototype.handleInput = function (dt) {
     if(input.isDown('DOWN') || input.isDown('s')) {
-        player.pos[1] += player.speed * dt;
+        this.player.pos[1] += this.player.speed * dt;
     }
 
     if(input.isDown('UP') || input.isDown('w')) {
-        player.pos[1] -= player.speed * dt;
+        this.player.pos[1] -= this.player.speed * dt;
     }
 
     if(input.isDown('LEFT') || input.isDown('a')) {
-        player.pos[0] -= player.speed * dt;
+        this.player.pos[0] -= this.player.speed * dt;
     }
 
     if(input.isDown('RIGHT') || input.isDown('d')) {
-        player.pos[0] += player.speed * dt;
+        this.player.pos[0] += this.player.speed * dt;
     }
 
     if(input.isDown('SPACE') &&
         !this.isGameOver &&
         Date.now() - this.lastFire > 100) {
-        var x = player.pos[0] + player.sprite.size[0] / 2;
-        var y = player.pos[1] + player.sprite.size[1] / 2;
+        var x = this.player.pos[0] + this.player.sprite.size[0] / 2;
+        var y = this.player.pos[1] + this.player.sprite.size[1] / 2;
 
-        bullets.push(new Bullet([x, y], 'forward'));
-        bullets.push(new Bullet([x, y], 'up'));
-        bullets.push(new Bullet([x, y], 'down'));
+        this.bullets.push(new Bullet([x, y], 'forward'));
+        this.bullets.push(new Bullet([x, y], 'up'));
+        this.bullets.push(new Bullet([x, y], 'down'));
 
         this.lastFire = Date.now();
     }
@@ -129,41 +139,41 @@ Game.prototype.handleInput = function (dt) {
 
 Game.prototype.updateEntities = function(dt) {
     // Update the player sprite animation
-    player.sprite.update(dt);
+    this.player.sprite.update(dt);
 
     // Update all the bullets
-    for(var i=0; i<bullets.length; i++) {
-        var bullet = bullets[i];
+    for(var i=0; i<this.bullets.length; i++) {
+        var bullet = this.bullets[i];
 
         bullet.move(dt);
 
         // Remove the bullet if it goes offscreen
         if(bullet.pos[1] < 0 || bullet.pos[1] > this.canvas.height ||
             bullet.pos[0] > this.canvas.width) {
-            bullets.splice(i, 1);
+            this.bullets.splice(i, 1);
             i--;
         }
     }
 
     // Update all the enemies
-    for(var i=0; i<enemies.length; i++) {
-        enemies[i].move(dt);
-        enemies[i].sprite.update(dt);
+    for(var i=0; i<this.enemies.length; i++) {
+        this.enemies[i].move(dt);
+        this.enemies[i].sprite.update(dt);
 
         // Remove if offscreen
-        if(enemies[i].pos[0] + enemies[i].sprite.size[0] < 0) {
-            enemies.splice(i, 1);
+        if(this.enemies[i].pos[0] + this.enemies[i].sprite.size[0] < 0) {
+            this.enemies.splice(i, 1);
             i--;
         }
     }
 
     // Update all the explosions
-    for(var i=0; i<explosions.length; i++) {
-        explosions[i].sprite.update(dt);
+    for(var i=0; i<this.explosions.length; i++) {
+        this.explosions[i].sprite.update(dt);
 
         // Remove if animation is done
-        if(explosions[i].sprite.done) {
-            explosions.splice(i, 1);
+        if(this.explosions[i].sprite.done) {
+            this.explosions.splice(i, 1);
             i--;
         }
     }
@@ -173,32 +183,32 @@ Game.prototype.checkCollisions = function() {
     this.checkPlayerBounds();
 
     // Run collision detection for all enemies and bullets
-    for(var i=0; i<enemies.length; i++) {
-        var pos = enemies[i].pos;
-        var size = enemies[i].sprite.size;
+    for(var i=0; i<this.enemies.length; i++) {
+        var pos = this.enemies[i].pos;
+        var size = this.enemies[i].sprite.size;
 
-        for(var j=0; j<bullets.length; j++) {
-            var pos2 = bullets[j].pos;
-            var size2 = bullets[j].sprite.size;
+        for(var j=0; j<this.bullets.length; j++) {
+            var pos2 = this.bullets[j].pos;
+            var size2 = this.bullets[j].sprite.size;
 
             if(boxCollides(pos, size, pos2, size2)) {
                 // Remove the enemy
-                enemies.splice(i, 1);
+                this.enemies.splice(i, 1);
                 i--;
 
                 // Add score
                 this.setScore(100 + this.score);
 
                 // Add an explosion
-                explosions.push(new Explosion(pos));
+                this.explosions.push(new Explosion(pos));
 
                 // Remove the bullet and stop this iteration
-                bullets.splice(j, 1);
+                this.bullets.splice(j, 1);
                 break;
             }
         }
 
-        if(boxCollides(pos, size, player.pos, player.sprite.size)) {
+        if(boxCollides(pos, size, this.player.pos, this.player.sprite.size)) {
             this.gameOver();
         }
     }
@@ -206,18 +216,18 @@ Game.prototype.checkCollisions = function() {
 
 Game.prototype.checkPlayerBounds = function() {
     // Check bounds
-    if(player.pos[0] < 0) {
-        player.pos[0] = 0;
+    if(this.player.pos[0] < 0) {
+        this.player.pos[0] = 0;
     }
-    else if(player.pos[0] > this.canvas.width - player.sprite.size[0]) {
-        player.pos[0] = this.canvas.width - player.sprite.size[0];
+    else if(this.player.pos[0] > this.canvas.width - this.player.sprite.size[0]) {
+        this.player.pos[0] = this.canvas.width - this.player.sprite.size[0];
     }
 
-    if(player.pos[1] < 0) {
-        player.pos[1] = 0;
+    if(this.player.pos[1] < 0) {
+        this.player.pos[1] = 0;
     }
-    else if(player.pos[1] > this.canvas.height - player.sprite.size[1]) {
-        player.pos[1] = this.canvas.height - player.sprite.size[1];
+    else if(this.player.pos[1] > this.canvas.height - this.player.sprite.size[1]) {
+        this.player.pos[1] = this.canvas.height - this.player.sprite.size[1];
     }
 };
 
@@ -229,10 +239,10 @@ Game.prototype.reset = function() {
     this.gameTime = 0;
     this.setScore(0);
 
-    enemies = [];
-    bullets = [];
+    this.enemies = [];
+    this.bullets = [];
 
-    player.pos = [50, this.canvas.height / 2];
+    this.player.pos = [50, this.canvas.height / 2];
 };
 
 Game.prototype.gameOver = function () {
