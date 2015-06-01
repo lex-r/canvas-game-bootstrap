@@ -129,6 +129,8 @@ Game.prototype.handleInput = function (dt) {
         var x = this.player.pos[0] + this.player.sprite.size[0] / 2;
         var y = this.player.pos[1] + this.player.sprite.size[1] / 2;
 
+        Sound.play('blaster');
+
         this.bullets.push(new Bullet([x, y], 'forward'));
         this.bullets.push(new Bullet([x, y], 'up'));
         this.bullets.push(new Bullet([x, y], 'down'));
@@ -201,6 +203,7 @@ Game.prototype.checkCollisions = function() {
 
                 // Add an explosion
                 this.explosions.push(new Explosion(pos));
+                Sound.play('explosion');
 
                 // Remove the bullet and stop this iteration
                 this.bullets.splice(j, 1);
